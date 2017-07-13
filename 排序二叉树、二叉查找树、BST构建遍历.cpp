@@ -58,21 +58,21 @@ int main(){
 	if(origin==pre){
 		cout<<"YES"<<endl;
 		for(int i=0;i<n;i++){
-			if(i<n)
+			if(i<n-1)
 			 cout<<post[i]<<" ";
 			else
-			 cout<<post[i];
+			 cout<<post[i]<<endl;
 		}
 	}else if(origin==preM){
 		cout<<"YES"<<endl;
 		for(int i=0;i<n;i++){
-			if(i<n)
+			if(i<n-1)
 			 cout<<postM[i]<<" ";
 			else
-			 cout<<postM[i];
+			 cout<<postM[i]<<endl;
 		}
 	}else{
-		cout<<"NO"<<endl;
+		cout<<"NO";
 	}
 }
 

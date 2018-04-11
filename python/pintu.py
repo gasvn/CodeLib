@@ -7,18 +7,19 @@ from os.path import join
 # options
 #======================================================================
 ngroups = 4
-H = 180 # height of every component image (pixel)
-W = 3200 # width of synthesised image (pixel)
+H = 300 # height of every component image (pixel)
+W = 8000 # width of synthesised image (pixel)
 marginv = 40 # vertical margin (pixel)
 # margin of generated picture
 margin_top, margin_right, margin_bottom, margin_left = 20, 0, 10, 150
 all_imgs = []
-im_dir = '/media/conan/DATA/Datasets/ECSSD/result/pintu'
-subpaths = ["img", "gt", "fdss", "dss"]
+im_dir = '/media/gao/Datasets/ECSSD/deeplabresult/pintu/'
+subpaths = ["img", "gt", "dss", "sobeldss"]
+resname="dss_cmp"
 sortbyfmeasure = True
 imgcat=0
 gtcat=1
-sortcat=2
+sortcat=3
 #======================================================================
 def fmeasure(pred,target):
   pred/=pred.max()
@@ -122,17 +123,30 @@ draw = ImageDraw.Draw(picture)
 y = margin_top + H // 2
 x = 16
 for r in range(len(rows)):
-  draw.text((x, y), 'img', (0,0,0), font=font)
+  draw.text((x, y), subpaths[0], (0,0,0), font=font)
   y = y + H - 1
-  draw.text((x, y), 'gt', (0,0,0), font=font)
+  draw.text((x, y), subpaths[1], (0,0,0), font=font)
   y = y + H 
-  draw.text((x, y), 'fdss', (0,0,0), font=font)
+  draw.text((x, y), subpaths[2], (0,0,0), font=font)
   y = y + H  
-  draw.text((x, y), 'dss', (0,0,0), font=font)
+  draw.text((x, y), subpaths[3], (0,0,0), font=font)
   y = y + H  
   draw = ImageDraw.Draw(picture)
   y = y + marginv
-picture.save('/media/conan/DATA/Datasets/ECSSD/result/pintu/cmp.pdf')
+#for r in range(len(rows)):
+  # draw.text((x, y), 'img', (0,0,0), font=font)
+  # y = y + H - 1
+  # draw.text((x, y), 'gt', (0,0,0), font=font)
+  # y = y + H 
+  # draw.text((x, y), 'dss', (0,0,0), font=font)
+  # y = y + H  
+  # draw.text((x, y), 'sobeldss', (0,0,0), font=font)
+  # y = y + H  
+  # draw = ImageDraw.Draw(picture)
+  # y = y + marginv
+print(picture.size)
+picture.save(join(im_dir,resname+'.pdf'))
+#picture.save('/media/gao/Datasets/ECSSD/deeplabresult/pintu/dsscmp.pdf')
 #picture.save('/media/conan/DATA/Datasets/ECSSD/result/pintu/cmp.jpg')
 # import PIL
 # print picture.size

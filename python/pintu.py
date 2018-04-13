@@ -14,9 +14,12 @@ marginv = 40 # vertical margin (pixel)
 margin_top, margin_right, margin_bottom, margin_left = 20, 0, 10, 150
 all_imgs = []
 im_dir = '/media/gao/Datasets/ECSSD/deeplabresult/pintu/'
-subpaths = ["img", "gt", "hed", "sobelhed"]
-resname="hed_cmp"
-sortbyfmeasure = True
+subpaths = ["img", "gt", "resnet", "sobelresnet"] # put img folders in under the im_dir
+resname="resnet_cmp" 
+sort_by_fmeasure = True
+sort_by_fmeasurediff = False
+targetsortcat = 3
+basesortcat = 2
 imgcat=0
 gtcat=1
 sortcat=3
@@ -37,15 +40,7 @@ def fmeasure(pred,target):
   H = beta * target.sum() + pred.sum()
   fmeasure = (1 + beta) * TP / (H + FLT_MIN)
   return fmeasure
-
-assert len(subpaths) == ngroups
-imgs = [i for i in os.listdir(join(im_dir, subpaths[0]))]
-imgs.sort()
-nimgs = len(imgs)
-widths = np.zeros((nimgs,), dtype=np.int)
-
-
-if sortbyfmeasure==True:
+def sortbyfmeasure(imgs,im_dir,subpaths,sortcat,gtcat=1):
   print("Sorting by fmeasure score of %s"%(subpaths[sortcat]))
   fmesure_img=dict()
   for idx, j in enumerate(imgs):
@@ -55,6 +50,35 @@ if sortbyfmeasure==True:
   fimgs=sorted(fmesure_img.items(), key=lambda e:e[1], reverse=True)
   for idx, j in enumerate(fimgs):
     imgs[idx]=j[0]
+  return imgs
+
+def sortbyfmeasurediff(imgs,im_dir,subpaths,targetsortcat,basesortcat,gtcat=1):
+  print("Sorting by fmeasure diff score of %s and %s"%(subpaths[targetsortcat],subpaths[basesortcat]))
+  fmesure_img=dict()
+  for idx, j in enumerate(imgs):
+    gt = cv2.imread(join(im_dir, subpaths[gtcat], j[:-4]+'.png'))
+    targetim = cv2.imread(join(im_dir, subpaths[targetsortcat], j[:-4]+'.png'))
+    baseim = cv2.imread(join(im_dir, subpaths[basesortcat], j[:-4]+'.png'))
+    fmesure_img[j]=fmeasure(targetim,gt)-fmeasure(baseim,gt)
+  fimgs=sorted(fmesure_img.items(), key=lambda e:e[1], reverse=True)
+  for idx, j in enumerate(fimgs):
+    imgs[idx]=j[0]
+  return imgs
+
+
+assert len(subpaths) == ngroups
+imgs = [i for i in os.listdir(join(im_dir, subpaths[0]))]
+imgs.sort()
+nimgs = len(imgs)
+widths = np.zeros((nimgs,), dtype=np.int)
+
+
+if sort_by_fmeasure==True:
+  resname+="_f"
+  imgs = sortbyfmeasure(imgs,im_dir,subpaths,sortcat,gtcat)
+if sort_by_fmeasurediff==True:
+  resname+="_fdiff"
+  imgs = sortbyfmeasurediff(imgs,im_dir,subpaths,targetsortcat,basesortcat,gtcat=1)
 # prepare images
 print("Preparing images...")
 for i in range(ngroups):

@@ -13,11 +13,11 @@ marginv = 40 # vertical margin (pixel)
 # margin of generated picture
 margin_top, margin_right, margin_bottom, margin_left = 20, 0, 10, 150
 all_imgs = []
-im_dir = '/media/gao/Datasets/ECSSD/deeplabresult/pintu/'
-subpaths = ["img", "gt", "resnet", "sobelresnet"] # put img folders in under the im_dir
+im_dir = '/media/gao/projects/fmeasure/sal/allresult/pintu/ECSSD/'
+subpaths = ["img", "gt", "dss", "fdss"] # put img folders in under the im_dir
 resname="resnet_cmp" 
-sort_by_fmeasure = True
-sort_by_fmeasurediff = False
+sort_by_fmeasure = False
+sort_by_fmeasurediff = True
 targetsortcat = 3
 basesortcat = 2
 imgcat=0

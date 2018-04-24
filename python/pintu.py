@@ -3,7 +3,7 @@ from PIL import Image, ImageDraw, ImageFont,ImageFile
 import numpy as np
 import os
 import cv2
-from os.path import join
+from os.path import join, isdir
 # options
 #======================================================================
 ngroups = 4
@@ -13,9 +13,13 @@ marginv = 40 # vertical margin (pixel)
 # margin of generated picture
 margin_top, margin_right, margin_bottom, margin_left = 20, 0, 10, 150
 all_imgs = []
-im_dir = '/media/gao/projects/fmeasure/sal/allresult/pintu/ECSSD/'
+# im_dir = '/media/gao/projects/fmeasure/sal/allresult/pintu/ECSSD/'
+im_dir = '/media/conan/DATA/Papers/2018.04_NIPS2018_Floss/examples'
 subpaths = ["img", "gt", "dss", "fdss"] # put img folders in under the im_dir
-resname="resnet_cmp" 
+resname="resnet_cmp"
+tmp_dir="tmp"
+if not isdir(tmp_dir):
+  os.mkdir(tmp_dir)
 sort_by_fmeasure = False
 sort_by_fmeasurediff = True
 targetsortcat = 3
@@ -64,6 +68,42 @@ def sortbyfmeasurediff(imgs,im_dir,subpaths,targetsortcat,basesortcat,gtcat=1):
   for idx, j in enumerate(fimgs):
     imgs[idx]=j[0]
   return imgs
+
+def savetopdf(picture,im_dir,resname,margin_top=20, margin_right=0, margin_bottom=10, margin_left=150):
+  # add margin
+  picture = np.pad(picture, ((margin_top, margin_bottom), (margin_left, margin_right), (0, 0)), mode='constant',
+  constant_values=255)
+  picture = Image.fromarray(picture)
+  # draw text on image
+  font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 40)
+  draw = ImageDraw.Draw(picture)
+  y = margin_top + H // 2
+  x = 16
+  for r in range(len(rows)):
+    draw.text((x, y), subpaths[0], (0,0,0), font=font)
+    y = y + H - 1
+    draw.text((x, y), subpaths[1], (0,0,0), font=font)
+    y = y + H 
+    draw.text((x, y), subpaths[2], (0,0,0), font=font)
+    y = y + H  
+    draw.text((x, y), subpaths[3], (0,0,0), font=font)
+    y = y + H  
+    draw = ImageDraw.Draw(picture)
+    y = y + marginv
+  #for r in range(len(rows)):
+    # draw.text((x, y), 'img', (0,0,0), font=font)
+    # y = y + H - 1
+    # draw.text((x, y), 'gt', (0,0,0), font=font)
+    # y = y + H 
+    # draw.text((x, y), 'dss', (0,0,0), font=font)
+    # y = y + H  
+    # draw.text((x, y), 'sobeldss', (0,0,0), font=font)
+    # y = y + H  
+    # draw = ImageDraw.Draw(picture)
+    # y = y + marginv
+  print(picture.size)
+  picture.save(join(im_dir,resname+'.pdf'))
+
 
 
 assert len(subpaths) == ngroups
@@ -136,40 +176,49 @@ for ridx, r in enumerate(rows):
       picture[ystart:yend, xstart:xend, :] = all_imgs[g][idx]
       xstart = xstart + w + marginh
     ystart = ystart + H
-  ystart = ystart + marginv
-# add margin
-picture = np.pad(picture, ((margin_top, margin_bottom), (margin_left, margin_right), (0, 0)), mode='constant',
-constant_values=255)
-picture = Image.fromarray(picture)
-# draw text on image
-font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 40)
-draw = ImageDraw.Draw(picture)
-y = margin_top + H // 2
-x = 16
-for r in range(len(rows)):
-  draw.text((x, y), subpaths[0], (0,0,0), font=font)
-  y = y + H - 1
-  draw.text((x, y), subpaths[1], (0,0,0), font=font)
-  y = y + H 
-  draw.text((x, y), subpaths[2], (0,0,0), font=font)
-  y = y + H  
-  draw.text((x, y), subpaths[3], (0,0,0), font=font)
-  y = y + H  
-  draw = ImageDraw.Draw(picture)
-  y = y + marginv
-#for r in range(len(rows)):
-  # draw.text((x, y), 'img', (0,0,0), font=font)
-  # y = y + H - 1
-  # draw.text((x, y), 'gt', (0,0,0), font=font)
-  # y = y + H 
-  # draw.text((x, y), 'dss', (0,0,0), font=font)
-  # y = y + H  
-  # draw.text((x, y), 'sobeldss', (0,0,0), font=font)
-  # y = y + H  
-  # draw = ImageDraw.Draw(picture)
-  # y = y + marginv
-print(picture.size)
-picture.save(join(im_dir,resname+'.pdf'))
+  ##### split pages ######
+  pages = 0
+  if ystart%10==0:
+    savetopdf(picture,tmp_dir,resname+'_'+str(pages),margin_top=20, margin_right=0, margin_bottom=10, margin_left=150) # save image to pdf
+    picture = np.ones((len(rows) * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255 # clear the picture buffer
+    pages+=1
+    ystart = 0
+  else:
+    ystart = ystart + marginv
+savetopdf(picture,tmp_dir,resname+'_'+str(pages+1),margin_top=20, margin_right=0, margin_bottom=10, margin_left=150) # save image to pdf
+# # add margin
+# picture = np.pad(picture, ((margin_top, margin_bottom), (margin_left, margin_right), (0, 0)), mode='constant',
+# constant_values=255)
+# picture = Image.fromarray(picture)
+# # draw text on image
+# font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 40)
+# draw = ImageDraw.Draw(picture)
+# y = margin_top + H // 2
+# x = 16
+# for r in range(len(rows)):
+#   draw.text((x, y), subpaths[0], (0,0,0), font=font)
+#   y = y + H - 1
+#   draw.text((x, y), subpaths[1], (0,0,0), font=font)
+#   y = y + H 
+#   draw.text((x, y), subpaths[2], (0,0,0), font=font)
+#   y = y + H  
+#   draw.text((x, y), subpaths[3], (0,0,0), font=font)
+#   y = y + H  
+#   draw = ImageDraw.Draw(picture)
+#   y = y + marginv
+# #for r in range(len(rows)):
+#   # draw.text((x, y), 'img', (0,0,0), font=font)
+#   # y = y + H - 1
+#   # draw.text((x, y), 'gt', (0,0,0), font=font)
+#   # y = y + H 
+#   # draw.text((x, y), 'dss', (0,0,0), font=font)
+#   # y = y + H  
+#   # draw.text((x, y), 'sobeldss', (0,0,0), font=font)
+#   # y = y + H  
+#   # draw = ImageDraw.Draw(picture)
+#   # y = y + marginv
+# print(picture.size)
+# picture.save(join(im_dir,resname+'.pdf'))
 #picture.save('/media/gao/Datasets/ECSSD/deeplabresult/pintu/dsscmp.pdf')
 #picture.save('/media/conan/DATA/Datasets/ECSSD/result/pintu/cmp.jpg')
 # import PIL

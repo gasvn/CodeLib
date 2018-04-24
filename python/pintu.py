@@ -4,24 +4,25 @@ import numpy as np
 import os
 import cv2
 from os.path import join, isdir
+import shutil
 # options
 #======================================================================
 ngroups = 4
 H = 300 # height of every component image (pixel)
-W = 8000 # width of synthesised image (pixel)
+W = 4000 # width of synthesised image (pixel)
 marginv = 40 # vertical margin (pixel)
 # margin of generated picture
 margin_top, margin_right, margin_bottom, margin_left = 20, 0, 10, 150
 all_imgs = []
-# im_dir = '/media/gao/projects/fmeasure/sal/allresult/pintu/ECSSD/'
-im_dir = '/media/conan/DATA/Papers/2018.04_NIPS2018_Floss/examples'
+im_dir = '/media/gao/projects/fmeasure/sal/allresult/pintu/ECSSD/'
+#im_dir = '/media/conan/DATA/Papers/2018.04_NIPS2018_Floss/examples'
 subpaths = ["img", "gt", "dss", "fdss"] # put img folders in under the im_dir
 resname="resnet_cmp"
 tmp_dir="tmp"
 if not isdir(tmp_dir):
   os.mkdir(tmp_dir)
-sort_by_fmeasure = False
-sort_by_fmeasurediff = True
+sort_by_fmeasure = True
+sort_by_fmeasurediff = False
 targetsortcat = 3
 basesortcat = 2
 imgcat=0
@@ -69,7 +70,7 @@ def sortbyfmeasurediff(imgs,im_dir,subpaths,targetsortcat,basesortcat,gtcat=1):
     imgs[idx]=j[0]
   return imgs
 
-def savetopdf(picture,im_dir,resname,margin_top=20, margin_right=0, margin_bottom=10, margin_left=150):
+def savetopdf(picture,im_dir,resname,rows_in_page,margin_top=20, margin_right=0, margin_bottom=10, margin_left=150):
   # add margin
   picture = np.pad(picture, ((margin_top, margin_bottom), (margin_left, margin_right), (0, 0)), mode='constant',
   constant_values=255)
@@ -79,7 +80,7 @@ def savetopdf(picture,im_dir,resname,margin_top=20, margin_right=0, margin_botto
   draw = ImageDraw.Draw(picture)
   y = margin_top + H // 2
   x = 16
-  for r in range(len(rows)):
+  for r in range(rows_in_page):
     draw.text((x, y), subpaths[0], (0,0,0), font=font)
     y = y + H - 1
     draw.text((x, y), subpaths[1], (0,0,0), font=font)
@@ -155,8 +156,11 @@ for idx, w in enumerate(widths):
     w1 += w
     rows[row_id].append(dict({"id": idx, "width": w}))
 # draw the picture
-picture = np.ones((len(rows) * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255
+#picture = np.ones((len(rows) * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255
 ystart = 0
+pages = 0
+rows_in_page=10
+picture = np.ones((rows_in_page * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255
 for ridx, r in enumerate(rows):
   # row
   for g in range(ngroups):
@@ -177,57 +181,51 @@ for ridx, r in enumerate(rows):
       xstart = xstart + w + marginh
     ystart = ystart + H
   ##### split pages ######
-  pages = 0
-  if ystart%10==0:
-    savetopdf(picture,tmp_dir,resname+'_'+str(pages),margin_top=20, margin_right=0, margin_bottom=10, margin_left=150) # save image to pdf
-    picture = np.ones((len(rows) * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255 # clear the picture buffer
+  if (ridx+1) %rows_in_page==0:
+    print "Generate page",pages
+    savetopdf(picture,tmp_dir,resname+'_'+str(pages),rows_in_page,margin_top=20, margin_right=0, margin_bottom=10, margin_left=150) # save image to pdf
+    picture = np.ones((rows_in_page * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255 # clear the picture buffer
     pages+=1
     ystart = 0
   else:
     ystart = ystart + marginv
-savetopdf(picture,tmp_dir,resname+'_'+str(pages+1),margin_top=20, margin_right=0, margin_bottom=10, margin_left=150) # save image to pdf
-# # add margin
-# picture = np.pad(picture, ((margin_top, margin_bottom), (margin_left, margin_right), (0, 0)), mode='constant',
-# constant_values=255)
-# picture = Image.fromarray(picture)
-# # draw text on image
-# font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 40)
-# draw = ImageDraw.Draw(picture)
-# y = margin_top + H // 2
-# x = 16
-# for r in range(len(rows)):
-#   draw.text((x, y), subpaths[0], (0,0,0), font=font)
-#   y = y + H - 1
-#   draw.text((x, y), subpaths[1], (0,0,0), font=font)
-#   y = y + H 
-#   draw.text((x, y), subpaths[2], (0,0,0), font=font)
-#   y = y + H  
-#   draw.text((x, y), subpaths[3], (0,0,0), font=font)
-#   y = y + H  
-#   draw = ImageDraw.Draw(picture)
-#   y = y + marginv
-# #for r in range(len(rows)):
-#   # draw.text((x, y), 'img', (0,0,0), font=font)
-#   # y = y + H - 1
-#   # draw.text((x, y), 'gt', (0,0,0), font=font)
-#   # y = y + H 
-#   # draw.text((x, y), 'dss', (0,0,0), font=font)
-#   # y = y + H  
-#   # draw.text((x, y), 'sobeldss', (0,0,0), font=font)
-#   # y = y + H  
-#   # draw = ImageDraw.Draw(picture)
-#   # y = y + marginv
-# print(picture.size)
-# picture.save(join(im_dir,resname+'.pdf'))
-#picture.save('/media/gao/Datasets/ECSSD/deeplabresult/pintu/dsscmp.pdf')
-#picture.save('/media/conan/DATA/Datasets/ECSSD/result/pintu/cmp.jpg')
-# import PIL
-# print picture.size
-# destination='/media/conan/DATA/Datasets/ECSSD/result/pintu/cmp.jpg'
-# try:
-#     picture.save(destination, "JPEG", quality=80, optimize=True, progressive=True)
-# except IOError:
-#     ImageFile.MAXBLOCK = int(picture.size[0] * picture.size[1]*9.1)
-#     picture.save(destination, "JPEG", quality=80, optimize=True, progressive=True)
+savetopdf(picture,tmp_dir,resname+'_'+str(pages+1),rows_in_page,margin_top=20, margin_right=0, margin_bottom=10, margin_left=150) # save image to pdf
+############concat all pdf#########
+from PyPDF2 import PdfFileReader,PdfFileWriter
 
-# http://data.kaiz.xyz/hifi/sqr-objs-SYM-PASCAL.pdf
+def getFileName(filepath):
+    file_list = []
+    for root,dirs,files in os.walk(filepath):
+        for filespath in files:
+            # print(os.path.join(root,filespath))
+            file_list.append(os.path.join(root,filespath))
+
+    return file_list
+
+def MergePDF(filepath,outfile):
+    output=PdfFileWriter()
+    outputPages=0
+    pdf_fileName=getFileName(filepath)
+    for each in pdf_fileName:
+        # read pdf
+        input = PdfFileReader(file(each, "rb"))
+        # if pdf is Encrypted，decrype
+        if input.isEncrypted == True:
+            input.decrypt("map")
+        # pages numbers
+        pageCount = input.getNumPages()
+        outputPages += pageCount
+        #print pageCount
+        # put pages into output
+        for iPage in range(0, pageCount):
+            output.addPage(input.getPage(iPage))
+    print "All Pages Number:"+str(outputPages)
+    # write pdf
+    outputStream=file(outfile,"wb")
+    output.write(outputStream)
+    outputStream.close()
+    print "finished"
+
+MergePDF(tmp_dir,join(im_dir,resname+'.pdf'))
+shutil.rmtree(tmp_dir)
+

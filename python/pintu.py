@@ -21,8 +21,9 @@ resname="resnet_cmp"
 tmp_dir="tmp"
 if not isdir(tmp_dir):
   os.mkdir(tmp_dir)
-sort_by_fmeasure = True
-sort_by_fmeasurediff = False
+sortby="selfrules"
+#["fmeasure","fmeasurediff","selfrules"]
+
 targetsortcat = 3
 basesortcat = 2
 imgcat=0
@@ -70,6 +71,24 @@ def sortbyfmeasurediff(imgs,im_dir,subpaths,targetsortcat,basesortcat,gtcat=1):
     imgs[idx]=j[0]
   return imgs
 
+def pickbyselfrules(imgs,im_dir)
+  ######This function can be modified based on your specific rules.#######
+  print("Sorting/Picking by modified rules")
+  rule_img=dict()
+  for idx, j in enumerate(imgs):
+    gt = cv2.imread(join(im_dir, subpaths[gtcat], j[:-4]+'.png'))
+    targetim1 = cv2.imread(join(im_dir, "famulet", j[:-4]+'.png'))
+    baseim1 = cv2.imread(join(im_dir, "amulet", j[:-4]+'.png'))
+    targetim2 = cv2.imread(join(im_dir, "fdhs", j[:-4]+'.png'))
+    baseim2 = cv2.imread(join(im_dir, "dhs", j[:-4]+'.png'))
+    targetim3 = cv2.imread(join(im_dir, "fdss", j[:-4]+'.png'))
+    baseim3 = cv2.imread(join(im_dir, "dss", j[:-4]+'.png'))
+    if fmeasure(targetim1,gt)>fmeasure(baseim1,gt) and fmeasure(targetim2,gt)>fmeasure(baseim2,gt) and fmeasure(targetim3,gt)>fmeasure(baseim3,gt) and fmeasure(targetim4,gt)>fmeasure(baseim4,gt):
+    rule_img.append(j)
+    print rule_img
+  break
+  return rule_img
+
 def savetopdf(picture,im_dir,resname,rows_in_page,margin_top=20, margin_right=0, margin_bottom=10, margin_left=150):
   # add margin
   picture = np.pad(picture, ((margin_top, margin_bottom), (margin_left, margin_right), (0, 0)), mode='constant',
@@ -114,12 +133,14 @@ nimgs = len(imgs)
 widths = np.zeros((nimgs,), dtype=np.int)
 
 
-if sort_by_fmeasure==True:
+if sortby=="fmeasure":
   resname+="_f"
   imgs = sortbyfmeasure(imgs,im_dir,subpaths,sortcat,gtcat)
-if sort_by_fmeasurediff==True:
+if sortby=="fmeasurediff":
   resname+="_fdiff"
   imgs = sortbyfmeasurediff(imgs,im_dir,subpaths,targetsortcat,basesortcat,gtcat=1)
+if sortby=="selfrules":
+  imgs = pickbyselfrules(imgs,im_dir)
 # prepare images
 print("Preparing images...")
 for i in range(ngroups):

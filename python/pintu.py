@@ -7,7 +7,7 @@ from os.path import join, isdir
 import shutil
 # options
 #======================================================================
-ngroups = 4
+ngroups = 8
 H = 300 # height of every component image (pixel)
 W = 4000 # width of synthesised image (pixel)
 marginv = 40 # vertical margin (pixel)
@@ -16,8 +16,8 @@ margin_top, margin_right, margin_bottom, margin_left = 20, 0, 10, 150
 all_imgs = []
 im_dir = '/media/gao/projects/fmeasure/sal/allresult/pintu/ECSSD/'
 #im_dir = '/media/conan/DATA/Papers/2018.04_NIPS2018_Floss/examples'
-subpaths = ["img", "gt", "dss", "fdss"] # put img folders in under the im_dir
-resname="resnet_cmp"
+subpaths = ["img", "gt", "amulet","famulet","dhs","fdhs","dss", "fdss"] # put img folders in under the im_dir
+resname="F_cmp"
 tmp_dir="tmp"
 if not isdir(tmp_dir):
   os.mkdir(tmp_dir)
@@ -71,10 +71,10 @@ def sortbyfmeasurediff(imgs,im_dir,subpaths,targetsortcat,basesortcat,gtcat=1):
     imgs[idx]=j[0]
   return imgs
 
-def pickbyselfrules(imgs,im_dir)
+def pickbyselfrules(imgs,im_dir):
   ######This function can be modified based on your specific rules.#######
   print("Sorting/Picking by modified rules")
-  rule_img=dict()
+  rule_img=[]
   for idx, j in enumerate(imgs):
     gt = cv2.imread(join(im_dir, subpaths[gtcat], j[:-4]+'.png'))
     targetim1 = cv2.imread(join(im_dir, "famulet", j[:-4]+'.png'))
@@ -83,10 +83,9 @@ def pickbyselfrules(imgs,im_dir)
     baseim2 = cv2.imread(join(im_dir, "dhs", j[:-4]+'.png'))
     targetim3 = cv2.imread(join(im_dir, "fdss", j[:-4]+'.png'))
     baseim3 = cv2.imread(join(im_dir, "dss", j[:-4]+'.png'))
-    if fmeasure(targetim1,gt)>fmeasure(baseim1,gt) and fmeasure(targetim2,gt)>fmeasure(baseim2,gt) and fmeasure(targetim3,gt)>fmeasure(baseim3,gt) and fmeasure(targetim4,gt)>fmeasure(baseim4,gt):
-    rule_img.append(j)
-    print rule_img
-  break
+    if fmeasure(targetim1,gt)>fmeasure(baseim1,gt) and fmeasure(targetim2,gt)>fmeasure(baseim2,gt) and fmeasure(targetim3,gt)>fmeasure(baseim3,gt):
+      rule_img.append(j)
+  print rule_img
   return rule_img
 
 def savetopdf(picture,im_dir,resname,rows_in_page,margin_top=20, margin_right=0, margin_bottom=10, margin_left=150):
@@ -102,12 +101,9 @@ def savetopdf(picture,im_dir,resname,rows_in_page,margin_top=20, margin_right=0,
   for r in range(rows_in_page):
     draw.text((x, y), subpaths[0], (0,0,0), font=font)
     y = y + H - 1
-    draw.text((x, y), subpaths[1], (0,0,0), font=font)
-    y = y + H 
-    draw.text((x, y), subpaths[2], (0,0,0), font=font)
-    y = y + H  
-    draw.text((x, y), subpaths[3], (0,0,0), font=font)
-    y = y + H  
+    for i in range(1,len(subpaths)):
+      draw.text((x, y), subpaths[i], (0,0,0), font=font)
+      y = y + H 
     draw = ImageDraw.Draw(picture)
     y = y + marginv
   #for r in range(len(rows)):
@@ -129,9 +125,6 @@ def savetopdf(picture,im_dir,resname,rows_in_page,margin_top=20, margin_right=0,
 assert len(subpaths) == ngroups
 imgs = [i for i in os.listdir(join(im_dir, subpaths[0]))]
 imgs.sort()
-nimgs = len(imgs)
-widths = np.zeros((nimgs,), dtype=np.int)
-
 
 if sortby=="fmeasure":
   resname+="_f"
@@ -143,6 +136,8 @@ if sortby=="selfrules":
   imgs = pickbyselfrules(imgs,im_dir)
 # prepare images
 print("Preparing images...")
+nimgs = len(imgs)
+widths = np.zeros((nimgs,), dtype=np.int)
 for i in range(ngroups):
   all_imgs.append([])
   if i == imgcat:
@@ -163,6 +158,7 @@ for i in range(ngroups):
     all_imgs[i].append(im)
 print("Prepared %d images into %d groups." % (ngroups * nimgs, ngroups))
 
+
 rows = [[]]
 w1 = np.int(0)
 row_id = 0
@@ -180,7 +176,7 @@ for idx, w in enumerate(widths):
 #picture = np.ones((len(rows) * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255
 ystart = 0
 pages = 0
-rows_in_page=10
+rows_in_page=3
 picture = np.ones((rows_in_page * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255
 for ridx, r in enumerate(rows):
   # row

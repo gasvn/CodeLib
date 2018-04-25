@@ -5,6 +5,7 @@ import os
 import cv2
 from os.path import join, isdir
 import shutil
+from multiprocessing import Pool
 # options
 #======================================================================
 ngroups = 8
@@ -21,8 +22,8 @@ resname="F_cmp"
 tmp_dir="tmp"
 if not isdir(tmp_dir):
   os.mkdir(tmp_dir)
-sortby="selfrules"
-#["fmeasure","fmeasurediff","selfrules"]
+sortby="none"
+#["fmeasure","fmeasurediff","selfrules","none"]
 
 targetsortcat = 3
 basesortcat = 2
@@ -30,7 +31,7 @@ imgcat=0
 gtcat=1
 sortcat=3
 #======================================================================
-def fmeasure(pred,target):
+def fmeasure(pred,target,thres=None):# thres:[0,255]
   pred/=pred.max()
   target/=target.max()
   beta=0.5
@@ -38,14 +39,34 @@ def fmeasure(pred,target):
   target = target > 0
   h, w,_ = target.shape
   assert pred.max() <= 1 and pred.min() >= 0, "pred.max = %f, pred.min = %f" % (pred.max(), pred.min())
-  #####with thrs####
-  # thrs=0.5
-  # pred[pred>thrs]=1
-  # pred[pred<=thrs]=0
+  #####with thres####
+  if thres!=None:
+    thres/=255.0
+    pred[pred>=thres]=1
+    pred[pred<thres]=0
   TP=np.sum(target * pred)
   H = beta * target.sum() + pred.sum()
   fmeasure = (1 + beta) * TP / (H + FLT_MIN)
   return fmeasure
+def bestfmeasure(pred,target):
+  pred/=pred.max()
+  target/=target.max()
+  beta=0.3
+  FLT_MIN=1e-16
+  target = target > 0
+  h, w,_ = target.shape
+  #####with thres####
+  bestfmeasure=0
+  for thres in range(1,255):
+    thres/=255.0
+    pred[pred>=thres]=1
+    pred[pred<thres]=0
+    TP=np.sum(target * pred)
+    H = beta * target.sum() + pred.sum()
+    fmeasure = (1 + beta) * TP / (H + FLT_MIN)
+    if fmeasure>bestfmeasure:
+        bestfmeasure=fmeasure
+  return bestfmeasure
 def sortbyfmeasure(imgs,im_dir,subpaths,sortcat,gtcat=1):
   print("Sorting by fmeasure score of %s"%(subpaths[sortcat]))
   fmesure_img=dict()
@@ -71,11 +92,9 @@ def sortbyfmeasurediff(imgs,im_dir,subpaths,targetsortcat,basesortcat,gtcat=1):
     imgs[idx]=j[0]
   return imgs
 
-def pickbyselfrules(imgs,im_dir):
-  ######This function can be modified based on your specific rules.#######
-  print("Sorting/Picking by modified rules")
-  rule_img=[]
-  for idx, j in enumerate(imgs):
+
+
+def rules_pickbyselfrules(im_dir,j):
     gt = cv2.imread(join(im_dir, subpaths[gtcat], j[:-4]+'.png'))
     targetim1 = cv2.imread(join(im_dir, "famulet", j[:-4]+'.png'))
     baseim1 = cv2.imread(join(im_dir, "amulet", j[:-4]+'.png'))
@@ -83,9 +102,51 @@ def pickbyselfrules(imgs,im_dir):
     baseim2 = cv2.imread(join(im_dir, "dhs", j[:-4]+'.png'))
     targetim3 = cv2.imread(join(im_dir, "fdss", j[:-4]+'.png'))
     baseim3 = cv2.imread(join(im_dir, "dss", j[:-4]+'.png'))
-    if fmeasure(targetim1,gt)>fmeasure(baseim1,gt) and fmeasure(targetim2,gt)>fmeasure(baseim2,gt) and fmeasure(targetim3,gt)>fmeasure(baseim3,gt):
-      rule_img.append(j)
+    better=0.1
+    tf1=bestfmeasure(targetim1,gt)
+    bf1=bestfmeasure(baseim1,gt)
+    tf2=bestfmeasure(targetim2,gt)
+    bf2=bestfmeasure(baseim2,gt)
+    tf3=bestfmeasure(targetim3,gt)
+    bf3=bestfmeasure(baseim3,gt)
+    print j,tf1,bf1,tf2,bf2,tf3,bf3
+    if tf1>(bf1+better) and tf2>(bf2+better) and tf3>(bf3+better):
+      return True
+    else:
+      return False
+def pickbyselfrules(imgs,im_dir):
+  ######This function can be modified based on your specific rules.#######
+  print("Sorting/Picking by modified rules")
+  rule_check=[]
+  rule_img=[]
+  ########## multi process ##########
+  p = Pool(40) # default number of process is the number of cores of your CPU, change it by yourself
+  for idx, j in enumerate(imgs):
+    rule_check.append(p.apply_async(rules_pickbyselfrules, args=(im_dir,j)))
+  p.close()
+  p.join()
+  for idx, j in enumerate(imgs):
+  	if rule_check[idx].get()==True:
+  	  rule_img.append(j)
+  ########## multi process ##########
   print rule_img
+  # for idx, j in enumerate(imgs):
+  #       if rules_pickbyselfrules(im_dir,j)==True:
+  #         rule_img.append(j)
+  #         print j
+  # for idx, j in enumerate(imgs):
+  #   gt = cv2.imread(join(im_dir, subpaths[gtcat], j[:-4]+'.png'))
+  #   targetim1 = cv2.imread(join(im_dir, "famulet", j[:-4]+'.png'))
+  #   baseim1 = cv2.imread(join(im_dir, "amulet", j[:-4]+'.png'))
+  #   targetim2 = cv2.imread(join(im_dir, "fdhs", j[:-4]+'.png'))
+  #   baseim2 = cv2.imread(join(im_dir, "dhs", j[:-4]+'.png'))
+  #   targetim3 = cv2.imread(join(im_dir, "fdss", j[:-4]+'.png'))
+  #   baseim3 = cv2.imread(join(im_dir, "dss", j[:-4]+'.png'))
+  #   better=0
+  #   if bestfmeasure(targetim1,gt)>bestfmeasure(baseim1,gt)+better and bestfmeasure(targetim2,gt)>bestfmeasure(baseim2,gt)+better and bestfmeasure(targetim3,gt)>bestfmeasure(baseim3,gt)+better:
+  #     rule_img.append(j)
+  #     print bestfmeasure(targetim1,gt),bestfmeasure(baseim1,gt,137)
+  # print rule_img
   return rule_img
 
 def savetopdf(picture,im_dir,resname,rows_in_page,margin_top=20, margin_right=0, margin_bottom=10, margin_left=150):
@@ -134,6 +195,7 @@ if sortby=="fmeasurediff":
   imgs = sortbyfmeasurediff(imgs,im_dir,subpaths,targetsortcat,basesortcat,gtcat=1)
 if sortby=="selfrules":
   imgs = pickbyselfrules(imgs,im_dir)
+
 # prepare images
 print("Preparing images...")
 nimgs = len(imgs)
@@ -223,6 +285,7 @@ def MergePDF(filepath,outfile):
     output=PdfFileWriter()
     outputPages=0
     pdf_fileName=getFileName(filepath)
+    pdf_fileName.sort()
     for each in pdf_fileName:
         # read pdf
         input = PdfFileReader(file(each, "rb"))

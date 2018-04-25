@@ -8,28 +8,35 @@ import shutil
 from multiprocessing import Pool
 # options
 #======================================================================
+####### name & image folder & tmp dir #####################
+resname="F_cmp"
+im_dir = '/media/gao/projects/fmeasure/sal/allresult/pintu/ECSSD/'
+tmp_dir="tmp"
+if not isdir(tmp_dir):
+  os.mkdir(tmp_dir)
+#im_dir = '/media/conan/DATA/Papers/2018.04_NIPS2018_Floss/examples'
+##### group number & group subfolder ######################
 ngroups = 8
+subpaths = ["img", "gt", "amulet","famulet","dhs","fdhs","dss", "fdss"]
+# put img folders in under the im_dir
+###### functions ##########################################
+sortby="none"
+#functions:["fmeasure","fmeasurediff","selfrules","none"]
+##### basic info ##########
+imgcat=0
+gtcat=1
+#####for fmeasurediff #####
+targetsortcat = 3
+basesortcat = 2
+#####for fmeasure #########
+sortcat=3
+######### layout ##########################################
+rows_in_page=3
 H = 300 # height of every component image (pixel)
 W = 4000 # width of synthesised image (pixel)
 marginv = 40 # vertical margin (pixel)
 # margin of generated picture
 margin_top, margin_right, margin_bottom, margin_left = 20, 0, 10, 150
-all_imgs = []
-im_dir = '/media/gao/projects/fmeasure/sal/allresult/pintu/ECSSD/'
-#im_dir = '/media/conan/DATA/Papers/2018.04_NIPS2018_Floss/examples'
-subpaths = ["img", "gt", "amulet","famulet","dhs","fdhs","dss", "fdss"] # put img folders in under the im_dir
-resname="F_cmp"
-tmp_dir="tmp"
-if not isdir(tmp_dir):
-  os.mkdir(tmp_dir)
-sortby="none"
-#["fmeasure","fmeasurediff","selfrules","none"]
-
-targetsortcat = 3
-basesortcat = 2
-imgcat=0
-gtcat=1
-sortcat=3
 #======================================================================
 def fmeasure(pred,target,thres=None):# thres:[0,255]
   pred/=pred.max()
@@ -181,8 +188,8 @@ def savetopdf(picture,im_dir,resname,rows_in_page,margin_top=20, margin_right=0,
   print(picture.size)
   picture.save(join(im_dir,resname+'.pdf'))
 
-
-
+####### init ########
+all_imgs = []
 assert len(subpaths) == ngroups
 imgs = [i for i in os.listdir(join(im_dir, subpaths[0]))]
 imgs.sort()
@@ -238,7 +245,6 @@ for idx, w in enumerate(widths):
 #picture = np.ones((len(rows) * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255
 ystart = 0
 pages = 0
-rows_in_page=3
 picture = np.ones((rows_in_page * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255
 for ridx, r in enumerate(rows):
   # row

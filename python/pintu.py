@@ -20,7 +20,7 @@ ngroups = 8
 subpaths = ["img", "gt", "amulet","famulet","dhs","fdhs","dss", "fdss"]
 # put img folders in under the im_dir
 ###### functions ##########################################
-sortby="none"
+sortby="selfrules"
 #functions:["fmeasure","fmeasurediff","selfrules","none"]
 ##### basic info ##########
 imgcat=0
@@ -127,7 +127,7 @@ def pickbyselfrules(imgs,im_dir):
   rule_check=[]
   rule_img=[]
   ########## multi process ##########
-  p = Pool(40) # default number of process is the number of cores of your CPU, change it by yourself
+  p = Pool(40) # default number of process is the number of cores of your CPU
   for idx, j in enumerate(imgs):
     rule_check.append(p.apply_async(rules_pickbyselfrules, args=(im_dir,j)))
   p.close()
@@ -135,8 +135,8 @@ def pickbyselfrules(imgs,im_dir):
   for idx, j in enumerate(imgs):
   	if rule_check[idx].get()==True:
   	  rule_img.append(j)
-  ########## multi process ##########
   print rule_img
+  ########## single process ##########
   # for idx, j in enumerate(imgs):
   #       if rules_pickbyselfrules(im_dir,j)==True:
   #         rule_img.append(j)
@@ -203,7 +203,7 @@ if sortby=="fmeasurediff":
 if sortby=="selfrules":
   imgs = pickbyselfrules(imgs,im_dir)
 
-# prepare images
+################### prepare images #############################
 print("Preparing images...")
 nimgs = len(imgs)
 widths = np.zeros((nimgs,), dtype=np.int)
@@ -241,7 +241,7 @@ for idx, w in enumerate(widths):
   else:
     w1 += w
     rows[row_id].append(dict({"id": idx, "width": w}))
-# draw the picture
+############################# draw the picture ############################
 #picture = np.ones((len(rows) * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255
 ystart = 0
 pages = 0
@@ -275,7 +275,7 @@ for ridx, r in enumerate(rows):
   else:
     ystart = ystart + marginv
 savetopdf(picture,tmp_dir,resname+'_'+str(pages+1),rows_in_page,margin_top=20, margin_right=0, margin_bottom=10, margin_left=150) # save image to pdf
-############concat all pdf#########
+############ concat all pdfs ########################################
 from PyPDF2 import PdfFileReader,PdfFileWriter
 
 def getFileName(filepath):

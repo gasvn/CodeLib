@@ -14,7 +14,7 @@ im_dir = '/media/gao/projects/fmeasure/sal/allresult/pintu/ECSSD/'
 tmp_dir="tmp"
 if not isdir(tmp_dir):
   os.mkdir(tmp_dir)
-#im_dir = '/media/conan/DATA/Papers/2018.04_NIPS2018_Floss/examples'
+showlabel = False # show label on image.
 ##### group number & group subfolder ######################
 ngroups = 8
 subpaths = ["img", "gt", "amulet","famulet","dhs","fdhs","dss", "fdss"]
@@ -215,6 +215,11 @@ for i in range(ngroups):
     suffix = '.png'
   for idx, j in enumerate(imgs):
     im = Image.open(join(im_dir, subpaths[i], j[:-4]+suffix))
+    if showlabel==True and i == 0:
+      ttf='/usr/share/fonts/un-core/UnDotum.ttf'
+      font = ImageFont.truetype(ttf,40)
+      draw=ImageDraw.Draw(im)
+      draw.text((0,0),j[:-4],(255,0,0),font=font)
     w, h = im.size
     r = np.float(H) / h
     w1 = np.int(w * r)

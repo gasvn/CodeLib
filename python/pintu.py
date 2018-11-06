@@ -225,6 +225,7 @@ for i in range(ngroups):
     w1 = np.int(w * r)
     widths[idx] = w1
     im = np.array(im.resize((w1, H)), dtype=np.uint8)
+    # this script only support uint8 type. For uint16, please use im =im/65535.0*255 to transform.
     if im.ndim!=3:
       im = np.array(im)
       im = im[:,:,np.newaxis]

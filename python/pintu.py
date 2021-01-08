@@ -10,17 +10,17 @@ from multiprocessing import Pool
 #======================================================================
 ####### name & image folder & tmp dir #####################
 resname="F_cmp"
-im_dir = '/media/gao/projects/fmeasure/sal/allresult/pintu/ECSSD/'
+im_dir = '/media/db/projects/flash_improve/vis_comparision/ECSSD_comp'
 tmp_dir="tmp"
 if not isdir(tmp_dir):
   os.mkdir(tmp_dir)
 showlabel = False # show label on image.
 ##### group number & group subfolder ######################
-ngroups = 8
-subpaths = ["img", "gt", "amulet","famulet","dhs","fdhs","dss", "fdss"]
+ngroups = 6
+subpaths = ["img", "gt", "DGRL", "PiCANet", "PoolNet", "CSNet"]
 # put img folders in under the im_dir
 ###### functions ##########################################
-sortby="selfrules"
+sortby="none"
 #functions:["fmeasure","fmeasurediff","selfrules","none"]
 ##### basic info ##########
 imgcat=0
@@ -116,7 +116,7 @@ def rules_pickbyselfrules(im_dir,j):
     bf2=bestfmeasure(baseim2,gt)
     tf3=bestfmeasure(targetim3,gt)
     bf3=bestfmeasure(baseim3,gt)
-    print j,tf1,bf1,tf2,bf2,tf3,bf3
+    print(j,tf1,bf1,tf2,bf2,tf3,bf3)
     if tf1>(bf1+better) and tf2>(bf2+better) and tf3>(bf3+better):
       return True
     else:
@@ -135,7 +135,7 @@ def pickbyselfrules(imgs,im_dir):
   for idx, j in enumerate(imgs):
   	if rule_check[idx].get()==True:
   	  rule_img.append(j)
-  print rule_img
+  print(rule_img)
   ########## single process ##########
   # for idx, j in enumerate(imgs):
   #       if rules_pickbyselfrules(im_dir,j)==True:
@@ -268,12 +268,27 @@ for ridx, r in enumerate(rows):
       w = c['width']
       idx = c['id']
       xend = xstart + w
+      if all_imgs[g][idx].shape[2]==2:
+          print(idx,"has 2 channls, change to 3")
+          this_img = all_imgs[g][idx]
+          this_img = this_img.transpose(2,0,1)[0,:,:]
+          all_imgs[g][idx] = np.repeat(this_img[...,np.newaxis],3,2)
+      elif all_imgs[g][idx].shape[2]==4:
+          print(idx,"has 4 channls, change to 3")
+          this_img = all_imgs[g][idx]
+          this_img = this_img.transpose(2,0,1)[:-1,:,:].transpose(1,2,0)
+          all_imgs[g][idx] = this_img
+      if all_imgs[g][idx].shape[0:-1]!=(yend-ystart, xend-xstart):
+          print("shape not aligned",all_imgs[g][idx].shape, (yend-ystart+1, xend-xstart+1))
+          all_imgs[g][idx] = cv2.resize(all_imgs[g][idx], (xend-xstart, yend-ystart))
+
+        
       picture[ystart:yend, xstart:xend, :] = all_imgs[g][idx]
       xstart = xstart + w + marginh
     ystart = ystart + H
   ##### split pages ######
   if (ridx+1) %rows_in_page==0:
-    print "Generate page",pages
+    print("Generate page",pages)
     savetopdf(picture,tmp_dir,resname+'_'+str(pages),rows_in_page,margin_top=20, margin_right=0, margin_bottom=10, margin_left=150) # save image to pdf
     picture = np.ones((rows_in_page * (H * ngroups + marginv), W, 3), dtype=np.uint8) * 255 # clear the picture buffer
     pages+=1
@@ -311,13 +326,12 @@ def MergePDF(filepath,outfile):
         # put pages into output
         for iPage in range(0, pageCount):
             output.addPage(input.getPage(iPage))
-    print "All Pages Number:"+str(outputPages)
+    print("All Pages Number:"+str(outputPages))
     # write pdf
     outputStream=file(outfile,"wb")
     output.write(outputStream)
     outputStream.close()
-    print "finished"
+    print("finished")
 
 MergePDF(tmp_dir,join(im_dir,resname+'.pdf'))
 shutil.rmtree(tmp_dir)
-

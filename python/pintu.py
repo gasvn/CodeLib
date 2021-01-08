@@ -315,7 +315,7 @@ def MergePDF(filepath,outfile):
     pdf_fileName.sort()
     for each in pdf_fileName:
         # read pdf
-        input = PdfFileReader(file(each, "rb"))
+        input = PdfFileReader(open(each, "rb"))
         # if pdf is Encrypted，decrype
         if input.isEncrypted == True:
             input.decrypt("map")
@@ -328,7 +328,7 @@ def MergePDF(filepath,outfile):
             output.addPage(input.getPage(iPage))
     print("All Pages Number:"+str(outputPages))
     # write pdf
-    outputStream=file(outfile,"wb")
+    outputStream=open(outfile,"wb")
     output.write(outputStream)
     outputStream.close()
     print("finished")
